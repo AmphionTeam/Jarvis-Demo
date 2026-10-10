@@ -131,15 +131,53 @@ export function observeCounters(root = document) {
 
 // Requested only once the page has loaded, so a slow or blocked widget server
 // never holds the page up. The widget finds its script by this id and draws
-// right after it.
+// right after it, at the width given in its URL; that width goes into its map
+// image URL, so it has to be whole pixels.
 function loadVisitorMap() {
   const slot = document.querySelector(".visitors__map[data-src]");
   if (!slot) return;
+  const box = getComputedStyle(slot);
+  const width = Math.floor(
+    slot.clientWidth - parseFloat(box.paddingLeft) - parseFloat(box.paddingRight)
+  );
+  const src = new URL(slot.dataset.src);
+  src.searchParams.set("w", width);
+
+  const observer = new MutationObserver(() => {
+    const map = slot.querySelector(".mapmyvisitors-map");
+    if (!map || !map.style.backgroundImage) return;
+    observer.disconnect();
+    sharpenVisitorMap(map, width);
+  });
+  observer.observe(slot, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["style"],
+  });
+
   const script = document.createElement("script");
   script.id = "mapmyvisitors";
   script.async = true;
-  script.src = slot.dataset.src;
+  script.src = src.href;
   slot.appendChild(script);
+}
+
+// The world map is a PNG exactly as wide as the widget, which is soft on
+// high-density screens. The same image rendered at screen resolution replaces
+// it once loaded; if it never loads, the original stays.
+function sharpenVisitorMap(map, width) {
+  const scale = Math.min(Math.ceil(window.devicePixelRatio || 1), 3);
+  if (scale < 2) return;
+  const original = map.style.backgroundImage;
+  const sharp = original.replace(/\bw_\d+/, `w_${width * scale}`);
+  const match = sharp !== original && sharp.match(/url\("?([^")]+)"?\)/);
+  if (!match) return;
+  const image = new Image();
+  image.onload = () => {
+    map.style.backgroundImage = sharp;
+  };
+  image.src = match[1];
 }
 
 /* ---------------------------------------------------------------- setup */
