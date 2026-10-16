@@ -302,7 +302,7 @@ export const RESULTS = {
         axis: ["0", "278 tasks"],
         decimals: 0,
         qaa: [29, 29, 2],
-        jarvis: [187, 38, 33],
+        jarvis: [192, 38, 33],
         note: "Tasks solved out of 278 airline, retail and telecom calls. A task counts only when the final database state and the required actions are exactly right.",
       },
       fdb3: {
